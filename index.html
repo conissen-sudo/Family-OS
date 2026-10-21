@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Household OS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-24 font-sans">
+
+  <!-- ================= PIN LOCK SCREEN ================= -->
+  <div id="pin-screen" class="fixed inset-0 bg-slate-900 text-white z-50 flex flex-col items-center justify-center p-6">
+    <div class="w-full max-w-xs text-center space-y-6">
+      <div class="text-4xl">🏡</div>
+      <h1 class="text-2xl font-bold">Household OS</h1>
+      <p class="text-slate-400 text-sm">Enter Family PIN to unlock (Default: 1234)</p>
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
+        class="w-full text-center text-3xl tracking-widest bg-slate-800 border border-slate-700 rounded-xl py-3 focus:outline-none focus:border-blue-500" />
+      <button onclick="verifyPin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition">
+        Unlock Home
+      </button>
+      <p id="pin-error" class="text-red-400 text-xs hidden">Incorrect PIN. Try again.</p>
+    </div>
+  </div>
+
+  <!-- ================= TOP HEADER & FAMILY SWITCHER ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-3 shadow-sm">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-bold text-slate-900">🏡 Split-Level Home OS</h1>
+        <p class="text-xs text-slate-500" id="active-user-label">Acting as: Dad</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="active-member-select" onchange="changeActiveMember(this.value)"
+          class="text-xs bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1.5 font-medium">
+          <!-- Populated dynamically -->
+        </select>
+        <button onclick="openTaskModal()" class="bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm hover:bg-blue-500">
+          + New Task
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MODULE 1: CHORES & MAINTENANCE ================= -->
+  <main id="module-chores" class="max-w-4xl mx-auto p-4 space-y-4">
+
+    <!-- View & Filter Controls -->
+    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 space-y-3">
+      <!-- Mode Tabs: Due Now vs Master List -->
+      <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-lg">
+        <button id="tab-due" onclick="setViewMode('due')" class="py-1.5 text-xs font-bold rounded-md bg-white shadow text-blue-600">
+          ⚡ Due & Overdue (<span id="due-count">0</span>)
+        </button>
+        <button id="tab-all" onclick="setViewMode('all')" class="py-1.5 text-xs font-bold rounded-md text-slate-600">
+          📋 Master Room List
+        </button>
+      </div>
+
+      <!-- Filters: Category, Room, Frequency, Assignee -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <select id="filter-category" onchange="renderTasks()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg p-2">
+          <option value="ALL">All Categories</option>
+          <option value="Cleaning">🧹 Cleaning</option>
+          <option value="Maintenance">🔧 Maintenance</option>
+        </select>
+        <select id="filter-room" onchange="renderTasks()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg p-2">
+          <option value="ALL">All Rooms</option>
+          <option value="Kitchen & Dining">Kitchen & Dining</option>
+          <option value="Living Room & Half-Wall">Living Room & Half-Wall</option>
+          <option value="Entryway & Stairs">Entryway & Stairs</option>
+          <option value="3 Bedrooms">3 Bedrooms</option>
+          <option value="2 Bathrooms">2 Bathrooms</option>
+          <option value="Basement Living">Basement Living</option>
+          <option value="Utility & Laundry">Utility & Laundry</option>
+          <option value="Garage, Lawn & Deck">Garage, Lawn & Deck</option>
+        </select>
+        <select id="filter-frequency" onchange="renderTasks()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg p-2">
+          <option value="ALL">All Frequencies</option>
+          <option value="Daily">Daily</option>
+          <option value="Weekly">Weekly</option>
+          <option value="Monthly">Monthly</option>
+          <option value="Quarterly">Quarterly</option>
+          <option value="Semi-Annually">Semi-Annually</option>
+          <option value="Annually">Annually</option>
+          <option value="Further">Further (2+ Yrs)</option>
+        </select>
+        <select id="filter-assignee" onchange="renderTasks()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg p-2">
+          <option value="ALL">Assigned: Anyone</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Task Cards Container -->
+    <div id="tasks-container" class="space-y-3"></div>
+  </main>
+
+  <!-- ================= MODULE 2: KITCHEN, MEALS & SHOPPING (EXPANSION READY) ================= -->
+  <main id="module-kitchen" class="max-w-4xl mx-auto p-4 hidden space-y-4">
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 text-center space-y-3">
+      <div class="text-4xl">🍲</div>
+      <h2 class="text-lg font-bold">Kitchen & Meal OS Module</h2>
+      <p class="text-xs text-slate-500 max-w-md mx-auto">
+        Your database tables (<code class="bg-slate-100 px-1 rounded">recipes</code>, <code class="bg-slate-100 px-1 rounded">ingredients_pantry</code>, and <code class="bg-slate-100 px-1 rounded">shopping_list</code>) are already created in Supabase! Whenever you're ready, we will drop the UI for Meal Planning and Auto-Shopping Lists right into this tab.
+      </p>
+    </div>
+  </main>
+
+  <!-- ================= ADD / EDIT TASK MODAL ================= -->
+  <div id="task-modal" class="fixed inset-0 bg-black/50 z-40 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-4 shadow-xl">
+      <h3 id="modal-title" class="text-base font-bold">Add / Customize Task</h3>
+      <input type="hidden" id="task-id" />
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold block mb-1">Task Name</label>
+          <input id="task-title" type="text" placeholder="e.g., Clean dryer vent" class="w-full border rounded-lg p-2" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold block mb-1">Category</label>
+            <select id="task-category" class="w-full border rounded-lg p-2">
+              <option value="Cleaning">Cleaning</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold block mb-1">Room / Zone</label>
+            <select id="task-room" class="w-full border rounded-lg p-2">
+              <option value="Kitchen & Dining">Kitchen & Dining</option>
+              <option value="Living Room & Half-Wall">Living Room & Half-Wall</option>
+              <option value="Entryway & Stairs">Entryway & Stairs</option>
+              <option value="3 Bedrooms">3 Bedrooms</option>
+              <option value="2 Bathrooms">2 Bathrooms</option>
+              <option value="Basement Living">Basement Living</option>
+              <option value="Utility & Laundry">Utility & Laundry</option>
+              <option value="Garage, Lawn & Deck">Garage, Lawn & Deck</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold block mb-1">Frequency</label>
+            <select id="task-freq" class="w-full border rounded-lg p-2">
+              <option value="Daily|1">Daily (Every 1 day)</option>
+              <option value="Weekly|7">Weekly (Every 7 days)</option>
+              <option value="Monthly|30">Monthly (Every 30 days)</option>
+              <option value="Quarterly|90">Quarterly (Every 90 days)</option>
+              <option value="Semi-Annually|180">Semi-Annually (180 days)</option>
+              <option value="Annually|365">Annually (365 days)</option>
+              <option value="Further|730">Further (Every 2 Years)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold block mb-1">Assign To (Chore Passing)</label>
+            <select id="task-assignee" class="w-full border rounded-lg p-2"></select>
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold block mb-1">Notes / Instructions (Filter size, kids' guide, etc.)</label>
+          <textarea id="task-notes" rows="2" class="w-full border rounded-lg p-2"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-between pt-2">
+        <button id="delete-btn" onclick="deleteTask()" class="text-xs text-red-600 font-semibold hidden">Delete</button>
+        <div class="flex gap-2 ml-auto">
+          <button onclick="closeTaskModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg">Cancel</button>
+          <button onclick="saveTask()" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg">Save Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM MODULE NAVIGATION BAR ================= -->
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-30">
+    <div class="max-w-4xl mx-auto grid grid-cols-2 py-2">
+      <button onclick="switchModule('chores')" id="nav-chores" class="flex flex-col items-center text-blue-600 font-bold text-xs">
+        <span class="text-lg">🧹</span>
+        <span>Chores & Upkeep</span>
+      </button>
+      <button onclick="switchModule('kitchen')" id="nav-kitchen" class="flex flex-col items-center text-slate-400 font-medium text-xs">
+        <span class="text-lg">🍲</span>
+        <span>Meals & Grocery</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // ============================================================================
+    // CONFIGURATION: PASTE YOUR FREE SUPABASE URL & ANON KEY HERE
+    // (If left blank, the app runs in instant local storage mode so you can test it right now!)
+    // ============================================================================
+    const SUPABASE_URL = "https://vkshycfutxnyxmritoqf.supabase.co/rest/v1/"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrc2h5Y2Z1dHhueXhtcml0b3FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Mzg4MzMsImV4cCI6MjEwODExNDgzM30.QVBv51FX2FfB4SGLf2x9Z-EqyjHctZNbEFOU2Hkh5jo";
+    const useCloud = SUPABASE_URL && SUPABASE_ANON_KEY;
+    const supabaseClient = useCloud ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let state = {
+      pin: "1234",
+      activeMember: localStorage.getItem("activeMember") || "Dad",
+      viewMode: "due", // 'due' or 'all'
+      members: ["Shared / Anyone", "Dad", "Mom", "Kids"],
+      tasks: []
+    };
+
+    // Fallback starter tasks if testing before connecting Supabase
+    const DEFAULT_LOCAL_TASKS = [
+      { id: "1", title: "Wipe down half-wall cap/ledge & straighten cushions", category: "Cleaning", room: "Living Room & Half-Wall", frequency_label: "Daily", interval_days: 1, assigned_to: "Shared / Anyone", next_due_date: new Date().toISOString().split('T')[0], notes: "High dust/drink zone" },
+      { id: "2", title: "Check basement hygrometer (Keep humidity < 50%)", category: "Maintenance", room: "Basement Living", frequency_label: "Daily", interval_days: 1, assigned_to: "Dad", next_due_date: new Date().toISOString().split('T')[0], notes: "No sump pump in basement" },
+      { id: "3", title: "Vacuum/sweep upper and lower split-level stair treads", category: "Cleaning", room: "Entryway & Stairs", frequency_label: "Weekly", interval_days: 7, assigned_to: "Shared / Anyone", next_due_date: new Date().toISOString().split('T')[0], notes: "" },
+      { id: "4", title: "Check/replace HVAC air filter & pour water in floor drain P-trap", category: "Maintenance", room: "Utility & Laundry", frequency_label: "Monthly", interval_days: 30, assigned_to: "Dad", next_due_date: new Date().toISOString().split('T')[0], notes: "" }
+    ];
+
+    async function verifyPin() {
+      const entered = document.getElementById("pin-input").value;
+      if (useCloud) {
+        const { data } = await supabaseClient.from("household_settings").select("pin_code").eq("id", 1).single();
+        if (data) state.pin = data.pin_code;
+      }
+      if (entered === state.pin) {
+        sessionStorage.setItem("unlocked", "true");
+        document.getElementById("pin-screen").classList.add("hidden");
+        loadData();
+      } else {
+        document.getElementById("pin-error").classList.remove("hidden");
+      }
+    }
+
+    async function loadData() {
+      if (useCloud) {
+        const { data: membersData } = await supabaseClient.from("household_members").select("name").order("created_at");
+        if (membersData && membersData.length) state.members = membersData.map(m => m.name);
+        const { data: tasksData } = await supabaseClient.from("tasks").select("*").order("next_due_date");
+        if (tasksData) state.tasks = tasksData;
+      } else {
+        const saved = localStorage.getItem("local_tasks");
+        state.tasks = saved ? JSON.parse(saved) : DEFAULT_LOCAL_TASKS;
+      }
+      populateMemberDropdowns();
+      renderTasks();
+    }
+
+    function populateMemberDropdowns() {
+      const topSelect = document.getElementById("active-member-select");
+      const filterSelect = document.getElementById("filter-assignee");
+      const modalSelect = document.getElementById("task-assignee");
+
+      topSelect.innerHTML = state.members.filter(m => m !== "Shared / Anyone").map(m =>
+        `<option value="${m}" ${m === state.activeMember ? 'selected' : ''}>👤 ${m}</option>`
+      ).join("");
+      document.getElementById("active-user-label").innerText = `Acting as: ${state.activeMember}`;
+
+      filterSelect.innerHTML = `<option value="ALL">Assigned: Anyone</option>` +
+        state.members.map(m => `<option value="${m}">Assigned: ${m}</option>`).join("");
+
+      modalSelect.innerHTML = state.members.map(m => `<option value="${m}">${m}</option>`).join("");
+    }
+
+    function changeActiveMember(name) {
+      state.activeMember = name;
+      localStorage.setItem("activeMember", name);
+      document.getElementById("active-user-label").innerText = `Acting as: ${name}`;
+    }
+
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      document.getElementById("tab-due").className = mode === "due" ? "py-1.5 text-xs font-bold rounded-md bg-white shadow text-blue-600" : "py-1.5 text-xs font-bold rounded-md text-slate-600";
+      document.getElementById("tab-all").className = mode === "all" ? "py-1.5 text-xs font-bold rounded-md bg-white shadow text-blue-600" : "py-1.5 text-xs font-bold rounded-md text-slate-600";
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const today = new Date().toISOString().split("T")[0];
+      const catFilter = document.getElementById("filter-category").value;
+      const roomFilter = document.getElementById("filter-room").value;
+      const freqFilter = document.getElementById("filter-frequency").value;
+      const assignFilter = document.getElementById("filter-assignee").value;
+
+      const dueTotal = state.tasks.filter(t => !t.next_due_date || t.next_due_date <= today).length;
+      document.getElementById("due-count").innerText = dueTotal;
+
+      const filtered = state.tasks.filter(t => {
+        if (state.viewMode === "due" && t.next_due_date > today) return false;
+        if (catFilter !== "ALL" && t.category !== catFilter) return false;
+        if (roomFilter !== "ALL" && t.room !== roomFilter) return false;
+        if (freqFilter !== "ALL" && t.frequency_label !== freqFilter) return false;
+        if (assignFilter !== "ALL" && t.assigned_to !== assignFilter) return false;
+        return true;
+      });
+
+      const container = document.getElementById("tasks-container");
+      if (!filtered.length) {
+        container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 text-sm border border-slate-200">🎉 All caught up for this filter!</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const isDue = !t.next_due_date || t.next_due_date <= today;
+        const badgeColor = t.category === "Cleaning" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800";
+        return `
+          <div class="bg-white rounded-xl p-3.5 shadow-sm border ${isDue ? 'border-l-4 border-l-blue-600 border-slate-200' : 'border-slate-200'} flex items-start justify-between gap-3">
+            <div class="space-y-1 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeColor}">${t.category}</span>
+                <span class="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">📍 ${t.room}</span>
+                <span class="text-[10px] font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">🔄 ${t.frequency_label}</span>
+                <span class="text-[10px] font-semibold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">👤 ${t.assigned_to || 'Shared'}</span>
+              </div>
+              <h4 class="font-bold text-sm text-slate-900">${t.title}</h4>
+              ${t.notes ? `<p class="text-xs text-slate-500">${t.notes}</p>` : ''}
+              <p class="text-[11px] text-slate-400">
+                Next Due: <strong class="${isDue ? 'text-red-600' : 'text-slate-600'}">${t.next_due_date}</strong>
+                ${t.last_completed_by ? ` • Last done by ${t.last_completed_by}` : ''}
+              </p>
+            </div>
+            <div class="flex flex-col gap-1.5 items-end">
+              <button onclick="completeTask('${t.id}')" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm">
+                ✓ Done
+              </button>
+              <button onclick="openTaskModal('${t.id}')" class="text-[11px] text-slate-400 hover:text-slate-700 px-2 py-1">
+                Edit / Reassign
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function completeTask(id) {
+      const task = state.tasks.find(t => t.id === id);
+      if (!task) return;
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + ( Number(task.interval_days) || 7 ));
+      const nextDueStr = nextDate.toISOString().split("T")[0];
+      const nowIso = new Date().toISOString();
+
+      task.last_completed_at = nowIso;
+      task.last_completed_by = state.activeMember;
+      task.next_due_date = nextDueStr;
+
+      if (useCloud) {
+        await supabaseClient.from("tasks").update({
+          last_completed_at: nowIso,
+          last_completed_by: state.activeMember,
+          next_due_date: nextDueStr
+        }).eq("id", id);
+      } else {
+        localStorage.setItem("local_tasks", JSON.stringify(state.tasks));
+      }
+      renderTasks();
+    }
+
+    function openTaskModal(id = null) {
+      document.getElementById("task-modal").classList.remove("hidden");
+      if (id) {
+        const t = state.tasks.find(x => x.id === id);
+        document.getElementById("modal-title").innerText = "Edit / Reassign Task";
+        document.getElementById("task-id").value = t.id;
+        document.getElementById("task-title").value = t.title;
+        document.getElementById("task-category").value = t.category;
+        document.getElementById("task-room").value = t.room;
+        document.getElementById("task-freq").value = `${t.frequency_label}|${t.interval_days}`;
+        document.getElementById("task-assignee").value = t.assigned_to || "Shared / Anyone";
+        document.getElementById("task-notes").value = t.notes || "";
+        document.getElementById("delete-btn").classList.remove("hidden");
+      } else {
+        document.getElementById("modal-title").innerText = "New Household Task";
+        document.getElementById("task-id").value = "";
+        document.getElementById("task-title").value = "";
+        document.getElementById("task-notes").value = "";
+        document.getElementById("delete-btn").classList.add("hidden");
+      }
+    }
+
+    function closeTaskModal() {
+      document.getElementById("task-modal").classList.add("hidden");
+    }
+
+    async function saveTask() {
+      const id = document.getElementById("task-id").value;
+      const [freqLabel, intervalDays] = document.getElementById("task-freq").value.split("|");
+      const payload = {
+        title: document.getElementById("task-title").value,
+        category: document.getElementById("task-category").value,
+        room: document.getElementById("task-room").value,
+        frequency_label: freqLabel,
+        interval_days: parseInt(intervalDays),
+        assigned_to: document.getElementById("task-assignee").value,
+        notes: document.getElementById("task-notes").value
+      };
+
+      if (useCloud) {
+        if (id) {
+          await supabaseClient.from("tasks").update(payload).eq("id", id);
+        } else {
+          await supabaseClient.from("tasks").insert([payload]);
+        }
+        await loadData();
+      } else {
+        if (id) {
+          const idx = state.tasks.findIndex(t => t.id === id);
+          state.tasks[idx] = { ...state.tasks[idx], ...payload };
+        } else {
+          state.tasks.push({ id: Date.now().toString(), next_due_date: new Date().toISOString().split('T')[0], ...payload });
+        }
+        localStorage.setItem("local_tasks", JSON.stringify(state.tasks));
+        renderTasks();
+      }
+      closeTaskModal();
+    }
+
+    async function deleteTask() {
+      const id = document.getElementById("task-id").value;
+      if (!id) return;
+      if (useCloud) {
+        await supabaseClient.from("tasks").delete().eq("id", id);
+        await loadData();
+      } else {
+        state.tasks = state.tasks.filter(t => t.id !== id);
+        localStorage.setItem("local_tasks", JSON.stringify(state.tasks));
+        renderTasks();
+      }
+      closeTaskModal();
+    }
+
+    function switchModule(mod) {
+      document.getElementById("module-chores").classList.toggle("hidden", mod !== "chores");
+      document.getElementById("module-kitchen").classList.toggle("hidden", mod !== "kitchen");
+      document.getElementById("nav-chores").className = mod === "chores" ? "flex flex-col items-center text-blue-600 font-bold text-xs" : "flex flex-col items-center text-slate-400 font-medium text-xs";
+      document.getElementById("nav-kitchen").className = mod === "kitchen" ? "flex flex-col items-center text-blue-600 font-bold text-xs" : "flex flex-col items-center text-slate-400 font-medium text-xs";
+    }
+
+    if (sessionStorage.getItem("unlocked") === "true") {
+      document.getElementById("pin-screen").classList.add("hidden");
+      loadData();
+    }
+  </script>
+</body>
+</html>

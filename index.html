@@ -16,7 +16,7 @@
     <div class="w-full max-w-xs text-center space-y-6">
       <div class="text-4xl">🏡</div>
       <h1 class="text-2xl font-bold">Household OS</h1>
-      <p class="text-slate-400 text-sm">Enter Family PIN to unlock</p>
+      <p class="text-slate-400 text-sm">Enter Family PIN to unlock (Default: 1234)</p>
       <input id="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
         class="w-full text-center text-3xl tracking-widest bg-slate-800 border border-slate-700 rounded-xl py-3 focus:outline-none focus:border-blue-500" />
       <button onclick="verifyPin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition">
@@ -49,15 +49,13 @@
 
   <!-- ================= MODULE 1: CHORES & MAINTENANCE ================= -->
   <main id="module-chores" class="max-w-4xl mx-auto p-4 space-y-4">
-
-    <!-- View & Filter Controls -->
     <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 space-y-3">
       <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-lg">
         <button id="tab-due" onclick="setViewMode('due')" class="py-1.5 text-xs font-bold rounded-md bg-white shadow text-blue-600">
           ⚡ Due & Overdue (<span id="due-count">0</span>)
         </button>
         <button id="tab-all" onclick="setViewMode('all')" class="py-1.5 text-xs font-bold rounded-md text-slate-600">
-          📋 Master Room List
+          📋 Master Room List (<span id="all-count">0</span>)
         </button>
       </div>
 
@@ -94,19 +92,80 @@
       </div>
     </div>
 
-    <!-- Task Cards Container -->
     <div id="tasks-container" class="space-y-3"></div>
   </main>
 
   <!-- ================= MODULE 2: KITCHEN, MEALS & SHOPPING ================= -->
   <main id="module-kitchen" class="max-w-4xl mx-auto p-4 hidden space-y-4">
-    <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 text-center space-y-3">
-      <div class="text-4xl">🍲</div>
-      <h2 class="text-lg font-bold">Kitchen & Meal OS Module</h2>
-      <p class="text-xs text-slate-500 max-w-md mx-auto">
-        Ready for your Meal Planner, Recipe Book, Ingredient Tracker, and Auto-Shopping List! Let me know when you're ready to activate this tab.
-      </p>
+    <div class="bg-white p-1.5 rounded-xl shadow-sm border border-slate-200 grid grid-cols-4 gap-1 text-xs font-bold">
+      <button id="ktab-meals" onclick="setKitchenTab('meals')" class="py-2 rounded-lg bg-blue-600 text-white">📅 Meals</button>
+      <button id="ktab-recipes" onclick="setKitchenTab('recipes')" class="py-2 rounded-lg text-slate-600">📖 Recipes</button>
+      <button id="ktab-pantry" onclick="setKitchenTab('pantry')" class="py-2 rounded-lg text-slate-600">🥫 Pantry</button>
+      <button id="ktab-shop" onclick="setKitchenTab('shop')" class="py-2 rounded-lg text-slate-600">🛒 Grocery</button>
     </div>
+
+    <section id="ksec-meals" class="space-y-3">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-sm">Weekly Dinner & Meal Planner</h3>
+          <p class="text-xs text-slate-500">Pick a recipe or type a custom meal for each day.</p>
+        </div>
+        <button onclick="generateShoppingFromMealPlan()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm">
+          🛒 Send Missing to Grocery List
+        </button>
+      </div>
+      <div id="meal-plan-container" class="space-y-2"></div>
+    </section>
+
+    <section id="ksec-recipes" class="hidden space-y-3">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs">
+        <h3 class="font-bold text-sm">➕ Add New Family Recipe</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input id="rec-title" type="text" placeholder="Recipe Name (e.g., Chicken Stir Fry)" class="border rounded-lg p-2 sm:col-span-2" />
+          <input id="rec-time" type="number" placeholder="Prep mins (e.g., 30)" class="border rounded-lg p-2" />
+        </div>
+        <input id="rec-ingredients" type="text" placeholder="Ingredients (comma-separated: Chicken:1:lb, Sauce:1:bottle)" class="w-full border rounded-lg p-2" />
+        <textarea id="rec-instructions" rows="2" placeholder="Cooking instructions / notes..." class="w-full border rounded-lg p-2"></textarea>
+        <button onclick="addRecipe()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg">+ Save Recipe</button>
+      </div>
+      <div id="recipes-container" class="space-y-2"></div>
+    </section>
+
+    <section id="ksec-pantry" class="hidden space-y-3">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs">
+        <h3 class="font-bold text-sm">🥫 Add Ingredient to Pantry / Fridge</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <input id="pan-name" type="text" placeholder="Item (e.g., Eggs)" class="border rounded-lg p-2" />
+          <input id="pan-qty" type="number" step="0.5" placeholder="Current Qty (e.g., 12)" class="border rounded-lg p-2" />
+          <input id="pan-unit" type="text" placeholder="Unit (count, lb, box)" class="border rounded-lg p-2" />
+          <input id="pan-min" type="number" step="0.5" placeholder="Low Alert At (e.g., 6)" class="border rounded-lg p-2" />
+        </div>
+        <button onclick="addPantryItem()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg">+ Add to Inventory</button>
+      </div>
+      <div id="pantry-container" class="space-y-2"></div>
+    </section>
+
+    <section id="ksec-shop" class="hidden space-y-3">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs">
+        <div class="flex flex-wrap gap-2 justify-between items-center">
+          <h3 class="font-bold text-sm">🛒 Live Family Shopping List</h3>
+          <div class="flex gap-1.5">
+            <button onclick="generateShoppingFromPantry()" class="bg-amber-500 hover:bg-amber-400 text-white font-bold px-2.5 py-1.5 rounded-lg">
+              + Low Pantry Items
+            </button>
+            <button onclick="clearCheckedShopping()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg">
+              Clear Checked
+            </button>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input id="shop-item" type="text" placeholder="Add grocery item..." class="flex-1 border rounded-lg p-2" />
+          <input id="shop-qty" type="text" placeholder="Qty (e.g., 2 bags)" class="w-28 border rounded-lg p-2" />
+          <button onclick="addShoppingItem()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg">Add</button>
+        </div>
+      </div>
+      <div id="shopping-container" class="space-y-2"></div>
+    </section>
   </main>
 
   <!-- ================= ADD / EDIT TASK MODAL ================= -->
@@ -155,7 +214,7 @@
             </select>
           </div>
           <div>
-            <label class="font-semibold block mb-1">Assign To (Chore Passing)</label>
+            <label class="font-semibold block mb-1">Assign To</label>
             <select id="task-assignee" class="w-full border rounded-lg p-2"></select>
           </div>
         </div>
@@ -185,17 +244,13 @@
         <h3 class="text-base font-bold">⚙️ Household Settings & Reset</h3>
         <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
       </div>
-
-      <!-- Reset Tasks Section -->
       <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
         <h4 class="font-bold text-amber-900">🔄 Reset All Tasks to Due Today</h4>
-        <p class="text-amber-700 text-[11px]">Tested the app and want a fresh start? This resets every task's due date back to today.</p>
+        <p class="text-amber-700 text-[11px]">Resets every task's due date back to today.</p>
         <button onclick="resetAllTasksToToday()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg">
           Reset All Tasks to Today
         </button>
       </div>
-
-      <!-- Add Family Member -->
       <div class="space-y-2">
         <h4 class="font-bold text-slate-800">👨‍👩‍👧‍👦 Add Household Member</h4>
         <div class="flex gap-2">
@@ -203,7 +258,6 @@
           <button onclick="addFamilyMember()" class="bg-blue-600 text-white font-semibold px-3 py-2 rounded-lg">+ Add</button>
         </div>
       </div>
-
       <div class="flex justify-end pt-2">
         <button onclick="closeSettingsModal()" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 rounded-lg">Close</button>
       </div>
@@ -225,32 +279,37 @@
   </nav>
 
   <script>
-    // ============================================================================
-    // SUPABASE URL & ANON PUBLIC KEY (PRE-CONFIGURED)
-    // ============================================================================
     const SUPABASE_URL = "https://vkshycfutxnyxmritoqf.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrc2h5Y2Z1dHhueXhtcml0b3FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Mzg4MzMsImV4cCI6MjEwODExNDgzM30.QVBv51FX2FfB4SGLf2x9Z-EqyjHctZNbEFOU2Hkh5jo";
 
-    const useCloud = true;
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
     let state = {
       pin: "1234",
       activeMember: localStorage.getItem("activeMember") || "Dad",
       viewMode: "due",
+      kitchenTab: "meals",
       members: ["Shared / Anyone", "Dad", "Mom", "Kids"],
-      tasks: []
+      tasks: [],
+      recipes: [],
+      pantry: [],
+      shopping: [],
+      mealPlan: []
     };
 
     async function verifyPin() {
       const entered = document.getElementById("pin-input").value;
-      if (useCloud) {
+      try {
         const { data } = await supabaseClient.from("household_settings").select("pin_code").eq("id", 1).single();
-        if (data) state.pin = data.pin_code;
+        if (data && data.pin_code) state.pin = data.pin_code;
+      } catch (e) {
+        console.log("Using default PIN");
       }
+
       if (entered === state.pin) {
         sessionStorage.setItem("unlocked", "true");
-        document.getElementById("pin-screen").classList.add("hidden");
+        document.getElementById("pin-screen").classList.add("hidden"); // Instantly hide screen
         loadData();
       } else {
         document.getElementById("pin-error").classList.remove("hidden");
@@ -258,14 +317,29 @@
     }
 
     async function loadData() {
-      if (useCloud) {
-        const { data: membersData } = await supabaseClient.from("household_members").select("name").order("created_at");
-        if (membersData && membersData.length) state.members = membersData.map(m => m.name);
-        const { data: tasksData } = await supabaseClient.from("tasks").select("*").order("next_due_date");
-        if (tasksData) state.tasks = tasksData;
+      try {
+        const [membersRes, tasksRes, recRes, panRes, shopRes, mealRes] = await Promise.all([
+          supabaseClient.from("household_members").select("name").order("created_at"),
+          supabaseClient.from("tasks").select("*").order("next_due_date"),
+          supabaseClient.from("recipes").select("*").order("title"),
+          supabaseClient.from("ingredients_pantry").select("*").order("name"),
+          supabaseClient.from("shopping_list").select("*").order("is_checked"),
+          supabaseClient.from("meal_plan").select("*")
+        ]);
+
+        if (membersRes.data && membersRes.data.length) state.members = membersRes.data.map(m => m.name);
+        if (tasksRes.data) state.tasks = tasksRes.data;
+        if (recRes.data) state.recipes = recRes.data;
+        if (panRes.data) state.pantry = panRes.data;
+        if (shopRes.data) state.shopping = shopRes.data;
+        if (mealRes.data) state.mealPlan = mealRes.data;
+      } catch (err) {
+        console.error("Error loading cloud data:", err);
       }
+
       populateMemberDropdowns();
       renderTasks();
+      renderKitchenAll();
     }
 
     function populateMemberDropdowns() {
@@ -306,6 +380,7 @@
 
       const dueTotal = state.tasks.filter(t => !t.next_due_date || t.next_due_date <= today).length;
       document.getElementById("due-count").innerText = dueTotal;
+      document.getElementById("all-count").innerText = state.tasks.length;
 
       const filtered = state.tasks.filter(t => {
         if (state.viewMode === "due" && t.next_due_date > today) return false;
@@ -368,48 +443,32 @@
       const nextDueStr = nextDate.toISOString().split("T")[0];
       const nowIso = new Date().toISOString();
 
-      task.last_completed_at = nowIso;
-      task.last_completed_by = state.activeMember;
-      task.next_due_date = nextDueStr;
-
-      if (useCloud) {
-        await supabaseClient.from("tasks").update({
-          last_completed_at: nowIso,
-          last_completed_by: state.activeMember,
-          next_due_date: nextDueStr
-        }).eq("id", id);
-      }
-      renderTasks();
+      await supabaseClient.from("tasks").update({
+        last_completed_at: nowIso,
+        last_completed_by: state.activeMember,
+        next_due_date: nextDueStr
+      }).eq("id", id);
+      await loadData();
     }
 
     async function resetSingleTask(id) {
       const today = new Date().toISOString().split("T")[0];
-      const task = state.tasks.find(t => t.id === id);
-      if (!task) return;
-      task.next_due_date = today;
-      task.last_completed_at = null;
-      task.last_completed_by = null;
-
-      if (useCloud) {
-        await supabaseClient.from("tasks").update({
-          next_due_date: today,
-          last_completed_at: null,
-          last_completed_by: null
-        }).eq("id", id);
-      }
-      renderTasks();
+      await supabaseClient.from("tasks").update({
+        next_due_date: today,
+        last_completed_at: null,
+        last_completed_by: null
+      }).eq("id", id);
+      await loadData();
     }
 
     async function resetAllTasksToToday() {
       const today = new Date().toISOString().split("T")[0];
-      if (useCloud) {
-        await supabaseClient.from("tasks").update({
-          next_due_date: today,
-          last_completed_at: null,
-          last_completed_by: null
-        }).not("id", "is", null);
-        await loadData();
-      }
+      await supabaseClient.from("tasks").update({
+        next_due_date: today,
+        last_completed_at: null,
+        last_completed_by: null
+      }).not("id", "is", null);
+      await loadData();
       closeSettingsModal();
       setViewMode("due");
     }
@@ -417,19 +476,225 @@
     async function addFamilyMember() {
       const name = document.getElementById("new-member-name").value.trim();
       if (!name) return;
-      if (useCloud) {
-        await supabaseClient.from("household_members").insert([{ name, role: "child" }]);
-        document.getElementById("new-member-name").value = "";
-        await loadData();
-      }
+      await supabaseClient.from("household_members").insert([{ name, role: "child" }]);
+      document.getElementById("new-member-name").value = "";
+      await loadData();
     }
 
-    function openSettingsModal() {
-      document.getElementById("settings-modal").classList.remove("hidden");
+    function setKitchenTab(tab) {
+      state.kitchenTab = tab;
+      ["meals", "recipes", "pantry", "shop"].forEach(k => {
+        document.getElementById(`ksec-${k}`).classList.toggle("hidden", k !== tab);
+        document.getElementById(`ktab-${k}`).className = k === tab ? "py-2 rounded-lg bg-blue-600 text-white" : "py-2 rounded-lg text-slate-600";
+      });
     }
-    function closeSettingsModal() {
-      document.getElementById("settings-modal").classList.add("hidden");
+
+    function renderKitchenAll() {
+      renderMealPlan();
+      renderRecipes();
+      renderPantry();
+      renderShopping();
     }
+
+    function renderMealPlan() {
+      const container = document.getElementById("meal-plan-container");
+      const recipeOptions = `<option value="">-- Select Recipe --</option>` +
+        state.recipes.map(r => `<option value="${r.id}">${r.title} (${r.prep_time_mins}m)</option>`).join("");
+
+      container.innerHTML = DAYS_OF_WEEK.map(day => {
+        const entry = state.mealPlan.find(m => m.day_of_week === day) || {};
+        return `
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <span class="font-bold text-slate-800 w-24">${day}</span>
+            <select onchange="saveMealPlanDay('${day}', this.value, '')" class="border rounded-lg p-2 flex-1 bg-slate-50">
+              ${recipeOptions.replace(`value="${entry.recipe_id}"`, `value="${entry.recipe_id}" selected`)}
+            </select>
+            <input type="text" placeholder="Or custom meal..." value="${entry.custom_meal_name || ''}"
+              onblur="saveMealPlanDay('${day}', '${entry.recipe_id || ''}', this.value)"
+              class="border rounded-lg p-2 flex-1" />
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function saveMealPlanDay(day, recipeId, customName) {
+      const existing = state.mealPlan.find(m => m.day_of_week === day);
+      const payload = { day_of_week: day, recipe_id: recipeId || null, custom_meal_name: customName };
+      if (existing) {
+        await supabaseClient.from("meal_plan").update(payload).eq("id", existing.id);
+      } else {
+        await supabaseClient.from("meal_plan").insert([payload]);
+      }
+      await loadData();
+    }
+
+    function renderRecipes() {
+      const container = document.getElementById("recipes-container");
+      if (!state.recipes.length) {
+        container.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-slate-400 text-xs">No recipes yet.</div>`;
+        return;
+      }
+      container.innerHTML = state.recipes.map(r => {
+        const ingList = (r.ingredients_json || []).map(i => `${i.name} (${i.qty} ${i.unit || ''})`).join(", ");
+        return `
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-1 text-xs flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-sm text-slate-900">📖 ${r.title} <span class="text-slate-400 font-normal">(${r.prep_time_mins || 25}m)</span></h4>
+              <p class="text-blue-700 font-medium">Ingredients: ${ingList || 'None listed'}</p>
+              ${r.instructions ? `<p class="text-slate-500">${r.instructions}</p>` : ''}
+            </div>
+            <button onclick="deleteRecipe('${r.id}')" class="text-red-500 font-bold px-2">✕</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function addRecipe() {
+      const title = document.getElementById("rec-title").value.trim();
+      if (!title) return;
+      const prep = parseInt(document.getElementById("rec-time").value) || 30;
+      const rawIng = document.getElementById("rec-ingredients").value.trim();
+      const instructions = document.getElementById("rec-instructions").value.trim();
+
+      const ingredients_json = rawIng ? rawIng.split(",").map(part => {
+        const [name, qty, unit] = part.split(":").map(s => s && s.trim());
+        return { name: name || "Item", qty: parseFloat(qty) || 1, unit: unit || "unit" };
+      }) : [];
+
+      await supabaseClient.from("recipes").insert([{ title, prep_time_mins: prep, instructions, ingredients_json }]);
+      document.getElementById("rec-title").value = "";
+      document.getElementById("rec-ingredients").value = "";
+      document.getElementById("rec-instructions").value = "";
+      await loadData();
+    }
+
+    async function deleteRecipe(id) {
+      await supabaseClient.from("recipes").delete().eq("id", id);
+      await loadData();
+    }
+
+    function renderPantry() {
+      const container = document.getElementById("pantry-container");
+      container.innerHTML = state.pantry.map(p => {
+        const isLow = Number(p.quantity_in_stock) <= Number(p.low_stock_threshold);
+        return `
+          <div class="bg-white p-3 rounded-xl border ${isLow ? 'border-l-4 border-l-amber-500 border-slate-200' : 'border-slate-200'} shadow-sm flex items-center justify-between text-xs">
+            <div>
+              <span class="font-bold text-slate-900">${p.name}</span>
+              <span class="text-slate-500 ml-1">(${p.quantity_in_stock} ${p.unit})</span>
+              ${isLow ? `<span class="ml-2 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold">Low Stock</span>` : ''}
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="adjustPantry('${p.id}', ${Number(p.quantity_in_stock) - 1})" class="bg-slate-100 px-2.5 py-1 rounded font-bold">-</button>
+              <button onclick="adjustPantry('${p.id}', ${Number(p.quantity_in_stock) + 1})" class="bg-slate-100 px-2.5 py-1 rounded font-bold">+</button>
+              <button onclick="deletePantry('${p.id}')" class="text-red-400 px-2">✕</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function addPantryItem() {
+      const name = document.getElementById("pan-name").value.trim();
+      if (!name) return;
+      const quantity_in_stock = parseFloat(document.getElementById("pan-qty").value) || 0;
+      const unit = document.getElementById("pan-unit").value.trim() || "unit";
+      const low_stock_threshold = parseFloat(document.getElementById("pan-min").value) || 1;
+
+      await supabaseClient.from("ingredients_pantry").insert([{ name, quantity_in_stock, unit, low_stock_threshold }]);
+      document.getElementById("pan-name").value = "";
+      document.getElementById("pan-qty").value = "";
+      await loadData();
+    }
+
+    async function adjustPantry(id, newQty) {
+      await supabaseClient.from("ingredients_pantry").update({ quantity_in_stock: Math.max(0, newQty) }).eq("id", id);
+      await loadData();
+    }
+
+    async function deletePantry(id) {
+      await supabaseClient.from("ingredients_pantry").delete().eq("id", id);
+      await loadData();
+    }
+
+    function renderShopping() {
+      const container = document.getElementById("shopping-container");
+      if (!state.shopping.length) {
+        container.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-slate-400 text-xs">Shopping list is empty!</div>`;
+        return;
+      }
+      container.innerHTML = state.shopping.map(s => `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
+          <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+            <input type="checkbox" ${s.is_checked ? 'checked' : ''} onchange="toggleShopping('${s.id}', this.checked)" class="w-4 h-4 rounded" />
+            <span class="${s.is_checked ? 'line-through text-slate-400' : 'font-bold text-slate-800'}">${s.item_name}</span>
+            <span class="text-slate-400">(${s.quantity})</span>
+          </label>
+          <span class="text-[10px] text-slate-400 mr-2">Added by ${s.added_by || 'Family'}</span>
+        </div>
+      `).join("");
+    }
+
+    async function addShoppingItem() {
+      const item_name = document.getElementById("shop-item").value.trim();
+      if (!item_name) return;
+      const quantity = document.getElementById("shop-qty").value.trim() || "1";
+      await supabaseClient.from("shopping_list").insert([{ item_name, quantity, added_by: state.activeMember }]);
+      document.getElementById("shop-item").value = "";
+      document.getElementById("shop-qty").value = "";
+      await loadData();
+    }
+
+    async function toggleShopping(id, is_checked) {
+      await supabaseClient.from("shopping_list").update({ is_checked }).eq("id", id);
+      await loadData();
+    }
+
+    async function clearCheckedShopping() {
+      await supabaseClient.from("shopping_list").delete().eq("is_checked", true);
+      await loadData();
+    }
+
+    async function generateShoppingFromPantry() {
+      const lowItems = state.pantry.filter(p => Number(p.quantity_in_stock) <= Number(p.low_stock_threshold));
+      for (const item of lowItems) {
+        const exists = state.shopping.some(s => s.item_name.toLowerCase() === item.name.toLowerCase() && !s.is_checked);
+        if (!exists) {
+          await supabaseClient.from("shopping_list").insert([{ item_name: item.name, quantity: `1 ${item.unit}`, added_by: "Pantry Auto" }]);
+        }
+      }
+      await loadData();
+      setKitchenTab("shop");
+    }
+
+    async function generateShoppingFromMealPlan() {
+      for (const plan of state.mealPlan) {
+        if (!plan.recipe_id) continue;
+        const recipe = state.recipes.find(r => r.id === plan.recipe_id);
+        if (!recipe || !recipe.ingredients_json) continue;
+
+        for (const ing of recipe.ingredients_json) {
+          const pantryMatch = state.pantry.find(p => p.name.toLowerCase() === ing.name.toLowerCase());
+          const inStock = pantryMatch ? Number(pantryMatch.quantity_in_stock) : 0;
+          if (inStock < Number(ing.qty)) {
+            const needed = Number(ing.qty) - inStock;
+            const exists = state.shopping.some(s => s.item_name.toLowerCase() === ing.name.toLowerCase() && !s.is_checked);
+            if (!exists) {
+              await supabaseClient.from("shopping_list").insert([{
+                item_name: ing.name,
+                quantity: `${needed} ${ing.unit || ''}`.trim(),
+                added_by: `Meal: ${recipe.title}`
+              }]);
+            }
+          }
+        }
+      }
+      await loadData();
+      setKitchenTab("shop");
+    }
+
+    function openSettingsModal() { document.getElementById("settings-modal").classList.remove("hidden"); }
+    function closeSettingsModal() { document.getElementById("settings-modal").classList.add("hidden"); }
 
     function openTaskModal(id = null) {
       const today = new Date().toISOString().split("T")[0];
@@ -456,9 +721,7 @@
       }
     }
 
-    function closeTaskModal() {
-      document.getElementById("task-modal").classList.add("hidden");
-    }
+    function closeTaskModal() { document.getElementById("task-modal").classList.add("hidden"); }
 
     async function saveTask() {
       const id = document.getElementById("task-id").value;
@@ -471,4 +734,37 @@
         interval_days: parseInt(intervalDays),
         assigned_to: document.getElementById("task-assignee").value,
         next_due_date: document.getElementById("task-due-date").value,
-        notes: document
+        notes: document.getElementById("task-notes").value
+      };
+
+      if (id) {
+        await supabaseClient.from("tasks").update(payload).eq("id", id);
+      } else {
+        await supabaseClient.from("tasks").insert([payload]);
+      }
+      await loadData();
+      closeTaskModal();
+    }
+
+    async function deleteTask() {
+      const id = document.getElementById("task-id").value;
+      if (!id) return;
+      await supabaseClient.from("tasks").delete().eq("id", id);
+      await loadData();
+      closeTaskModal();
+    }
+
+    function switchModule(mod) {
+      document.getElementById("module-chores").classList.toggle("hidden", mod !== "chores");
+      document.getElementById("module-kitchen").classList.toggle("hidden", mod !== "kitchen");
+      document.getElementById("nav-chores").className = mod === "chores" ? "flex flex-col items-center text-blue-600 font-bold text-xs" : "flex flex-col items-center text-slate-400 font-medium text-xs";
+      document.getElementById("nav-kitchen").className = mod === "kitchen" ? "flex flex-col items-center text-blue-600 font-bold text-xs" : "flex flex-col items-center text-slate-400 font-medium text-xs";
+    }
+
+    if (sessionStorage.getItem("unlocked") === "true") {
+      document.getElementById("pin-screen").classList.add("hidden");
+      loadData();
+    }
+  </script>
+</body>
+</html>
